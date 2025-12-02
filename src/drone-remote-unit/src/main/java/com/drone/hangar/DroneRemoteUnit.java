@@ -47,7 +47,7 @@ public class DroneRemoteUnit extends JFrame {
 
         // Initialize Serial
         serialComm = new SerialComm(this);
-        serialComm.connect("COM3"); // Default port, should be configurable
+        serialComm.connect("COM5"); // Default port, should be configurable
     }
 
     private void sendCommand(String cmd) {
