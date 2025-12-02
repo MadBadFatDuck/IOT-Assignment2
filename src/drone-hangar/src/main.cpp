@@ -1,7 +1,7 @@
 #include "BlinkTask.h"
 #include "Scheduler.h"
 #include "SmartHangarTask.h"
-#include "TempMonitorTask.h"
+//#include "TempMonitorTask.h"
 #include <Arduino.h>
 
 // Pin Definitions
@@ -13,7 +13,7 @@
 #define PIN_TRIG 7
 #define PIN_ECHO 8
 #define PIN_PIR 2
-#define PIN_TEMP A0
+//#define PIN_TEMP A0
 
 Scheduler sched;
 
@@ -27,24 +27,24 @@ void setup() {
   Sonar *sonar = new Sonar(PIN_TRIG, PIN_ECHO);
   Pir *pir = new Pir(PIN_PIR);
   ServoMotor *servo = new ServoMotor(PIN_SERVO);
-  TempSensor *temp = new TempSensor(PIN_TEMP);
+  //TempSensor *temp = new TempSensor(PIN_TEMP);
   LcdDisplay *lcd = new LcdDisplay();
 
   lcd->init();
 
   SmartHangarTask *hangarTask =
-      new SmartHangarTask(l1, l2, l3, btn, sonar, pir, servo, temp, lcd);
+      new SmartHangarTask(l1, l2, l3, btn, sonar, pir, servo, nullptr,/*temp ,*/ lcd);
   BlinkTask *blinkTask = new BlinkTask(l2, hangarTask);
-  TempMonitorTask *tempTask = new TempMonitorTask(temp, hangarTask);
+  //TempMonitorTask *tempTask = new TempMonitorTask(temp, hangarTask);
 
   hangarTask->init(100); // 10Hz
   blinkTask->init(500);  // 2Hz (0.5s period)
-  tempTask->init(500);   // 2Hz
+  //tempTask->init(500);   // 2Hz
 
   sched.init(50); // Base period 50ms
   sched.addTask(hangarTask);
   sched.addTask(blinkTask);
-  sched.addTask(tempTask);
+  //sched.addTask(tempTask);
 }
 
 void loop() { sched.schedule(); }
