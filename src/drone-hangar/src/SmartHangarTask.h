@@ -26,8 +26,8 @@ class SmartHangarTask : public Task {
   LcdDisplay *lcd;
 
   // Parameters
-  float D1 = 0.5;          // meters
-  float D2 = 0.3;          // meters
+  float D1 = 50;          // meters
+  float D2 = 30;          // meters
   unsigned long T1 = 2000; // ms
   unsigned long T2 = 2000; // ms
 

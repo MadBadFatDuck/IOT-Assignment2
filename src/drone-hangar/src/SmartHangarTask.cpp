@@ -49,7 +49,6 @@ void SmartHangarTask::tick() {
       String cmd = Serial.readStringUntil('\n');
       if (cmd == "TO" && !preAlarm) {
         state = TAKE_OFF;
-        l1->switchOff();
         servo->setPosition(90); // Open
         lcd->print("TAKE OFF");
         Serial.println("TAKE OFF");
@@ -95,7 +94,6 @@ void SmartHangarTask::tick() {
       if (millis() - stateStartTime > T2) {
         state = REST;
         servo->setPosition(0); // Close
-        l1->switchOn();
         lcd->print("DRONE INSIDE");
         Serial.println("DRONE INSIDE");
       }
@@ -108,7 +106,6 @@ void SmartHangarTask::tick() {
     if (resetBtn->isPressed()) {
       state = REST;
       l3->switchOff();
-      l1->switchOn();
       lcd->print("DRONE INSIDE");
       Serial.println("REST");
     }
