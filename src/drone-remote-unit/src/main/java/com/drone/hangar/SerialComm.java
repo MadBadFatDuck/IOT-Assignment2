@@ -21,6 +21,8 @@ public class SerialComm {
         serialPort = SerialPort.getCommPort(portName);
         serialPort.setBaudRate(9600);
 
+        serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
+
         if (serialPort.openPort()) {
             System.out.println("Serial Port Opened Successfully.");
             output = serialPort.getOutputStream();

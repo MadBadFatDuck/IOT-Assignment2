@@ -10,7 +10,7 @@
 #include "Task.h"
 #include "TempSensor.h"
 
-enum State { REST, TAKE_OFF, TO_OUT, LANDING, ALARM };
+enum State { REST, TAKE_OFF, TO_OUT, LANDING, HANGAR_ALARM };
 
 class SmartHangarTask : public Task {
   State state;

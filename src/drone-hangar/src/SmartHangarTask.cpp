@@ -28,8 +28,8 @@ void SmartHangarTask::init(int period) {
 }
 
 void SmartHangarTask::setAlarm() {
-  if (state != ALARM) {
-    state = ALARM;
+  if (state != HANGAR_ALARM) {
+    state = HANGAR_ALARM;
     l1->switchOff();
     l2->switchOff();
     l3->switchOn();
@@ -39,76 +39,68 @@ void SmartHangarTask::setAlarm() {
   }
 }
 
-bool SmartHangarTask::isAlarm() { return state == ALARM; }
+bool SmartHangarTask::isAlarm() { return state == HANGAR_ALARM; }
 
 void SmartHangarTask::tick() {
-  switch (state) {
-  case REST:
-    // Wait for TO command
+
+  if (state == REST) {
+    // REST Case
     if (Serial.available() > 0) {
       String cmd = Serial.readStringUntil('\n');
+      cmd.trim();
       if (cmd == "TO" && !preAlarm) {
         state = TAKE_OFF;
-        servo->setPosition(90); // Open
+        servo->setPosition(90);
         lcd->print("TAKE OFF");
         Serial.println("TAKE OFF");
         stateStartTime = millis();
       }
     }
-    break;
-
-  case TAKE_OFF:
-    // Wait for drone to exit (Sonar > D1 for T1)
+  } else if (state == TAKE_OFF) {
     if (sonar->getDistance() > D1) {
       if (millis() - stateStartTime > T1) {
         state = TO_OUT;
-        servo->setPosition(0); // Close
+        servo->setPosition(0);
         lcd->print("DRONE OUT");
         Serial.println("DRONE OUT");
       }
     } else {
-      stateStartTime = millis(); // Reset timer if distance is small
+      stateStartTime = millis();
     }
-    break;
-
-  case TO_OUT:
-    // Wait for LD command
+  } else if (state == TO_OUT) {
     if (Serial.available() > 0) {
       String cmd = Serial.readStringUntil('\n');
+      cmd.trim();
       if (cmd == "LD" && !preAlarm) {
-        // Check PIR
         if (pir->isDetected()) {
           state = LANDING;
-          servo->setPosition(90); // Open
+          servo->setPosition(90);
           lcd->print("LANDING");
           Serial.println("LANDING");
           stateStartTime = millis();
         }
       }
     }
-    break;
-
-  case LANDING:
-    // Wait for drone to enter (Sonar < D2 for T2)
+  } else if (state == LANDING) {
+    float distance = sonar->getDistance();
+    Serial.print("Distance:"); Serial.println(distance);
     if (sonar->getDistance() < D2) {
       if (millis() - stateStartTime > T2) {
         state = REST;
-        servo->setPosition(0); // Close
+        servo->setPosition(0);
         lcd->print("DRONE INSIDE");
         Serial.println("DRONE INSIDE");
       }
     } else {
       stateStartTime = millis();
     }
-    break;
-
-  case ALARM:
+  } else if (state == HANGAR_ALARM) {
     if (resetBtn->isPressed()) {
       state = REST;
       l3->switchOff();
+      l1->switchOn();
       lcd->print("DRONE INSIDE");
       Serial.println("REST");
     }
-    break;
   }
 }

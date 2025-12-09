@@ -9,7 +9,7 @@ public class DroneRemoteUnit extends JFrame {
     private JLabel droneStateLabel;
     private JLabel hangarStateLabel;
     private JLabel distanceLabel;
-    private JTextArea logArea;
+    private JLabel tempLabel;
 
     public DroneRemoteUnit() {
         setTitle("Drone Remote Unit");
@@ -30,20 +30,21 @@ public class DroneRemoteUnit extends JFrame {
         add(controlPanel, BorderLayout.NORTH);
 
         // Status Panel
-        JPanel statusPanel = new JPanel(new GridLayout(3, 2));
+        JPanel statusPanel = new JPanel(new GridLayout(4, 2));
         statusPanel.add(new JLabel("Drone State:"));
         droneStateLabel = new JLabel("Unknown");
+        statusPanel.add(droneStateLabel);
         statusPanel.add(new JLabel("Hangar State:"));
         hangarStateLabel = new JLabel("Normal");
+        statusPanel.add(hangarStateLabel);
         statusPanel.add(new JLabel("Distance:"));
         distanceLabel = new JLabel("-");
+        statusPanel.add(distanceLabel);
+        statusPanel.add(new JLabel("Temperature:"));
+        tempLabel = new JLabel("-");
+        statusPanel.add(tempLabel);
 
         add(statusPanel, BorderLayout.CENTER);
-
-        // Log Area
-        logArea = new JTextArea();
-        logArea.setEditable(false);
-        add(new JScrollPane(logArea), BorderLayout.SOUTH);
 
         // Initialize Serial
         serialComm = new SerialComm(this);
@@ -53,32 +54,53 @@ public class DroneRemoteUnit extends JFrame {
     private void sendCommand(String cmd) {
         if (serialComm != null) {
             serialComm.send(cmd);
-            log("Sent: " + cmd);
         }
     }
 
     public void updateState(String msg) {
+        // Pulizia e standardizzazione del messaggio in ingresso
+        // (Rimuove spazi bianchi e converte in maiuscolo)
+        final String cleanedMsg = msg.trim().toUpperCase();
+
+        // Log di DEBUG (Lascia questa parte per la console)
+        System.out.println(cleanedMsg);
+
+        // L'aggiornamento dell'interfaccia utente (GUI) deve essere eseguito sul thread
+        // di Event Dispatch (EDT)
         SwingUtilities.invokeLater(() -> {
-            log("Received: " + msg);
-            if (msg.contains("ALARM")) {
+
+            // 1. Aggiornamenti dello stato Hangar (Hangar State)
+            if (cleanedMsg.equals("ALARM")) {
                 hangarStateLabel.setText("ALARM");
                 hangarStateLabel.setForeground(Color.RED);
-            } else if (msg.contains("REST")) {
+            } else if (cleanedMsg.equals("REST")) { // Stato inviato da Arduino per uscire dall'allarme
                 hangarStateLabel.setText("Normal");
                 hangarStateLabel.setForeground(Color.BLACK);
-            } else if (msg.contains("TAKE OFF")) {
+            }
+
+            // 2. Aggiornamenti dello stato Drone (Drone State)
+            else if (cleanedMsg.equals("TAKE OFF")) {
                 droneStateLabel.setText("Taking Off");
-            } else if (msg.contains("LANDING")) {
+            } else if (cleanedMsg.equals("LANDING")) {
                 droneStateLabel.setText("Landing");
-            } else if (msg.contains("DRONE OUT")) {
+            } else if (cleanedMsg.equals("DRONE OUT")) {
                 droneStateLabel.setText("Operating");
-            } else if (msg.contains("DRONE INSIDE")) {
+            } else if (cleanedMsg.equals("DRONE INSIDE")) {
                 droneStateLabel.setText("Rest");
+                // Assicurati che anche lo stato Hangar sia Normal, specialmente all'avvio
+                hangarStateLabel.setText("Normal");
+                hangarStateLabel.setForeground(Color.BLACK);
+            }
+
+            // 3. Aggiornamenti della temperatura
+            else if (cleanedMsg.startsWith("TEMP:")) {
+                String val = cleanedMsg.substring(5);
+                tempLabel.setText(val + " C");
+            }
+            else if (cleanedMsg.startsWith("DISTANCE:")){
+                String val = cleanedMsg.substring(9);
+                distanceLabel.setText(val + " cm");
             }
         });
-    }
-
-    private void log(String msg) {
-        logArea.append(msg + "\n");
     }
 }

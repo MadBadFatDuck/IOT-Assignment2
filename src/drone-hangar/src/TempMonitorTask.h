@@ -9,8 +9,8 @@ class TempMonitorTask : public Task {
   TempSensor *temp;
   SmartHangarTask *mainTask;
 
-  float Temp1 = 35.0;      // Celsius
-  float Temp2 = 40.0;      // Celsius
+  float Temp1 = 27.0;      // Celsius
+  float Temp2 = 30.0;      // Celsius
   unsigned long T3 = 3000; // ms
   unsigned long T4 = 3000; // ms
 
@@ -18,6 +18,7 @@ class TempMonitorTask : public Task {
   unsigned long temp2StartTime;
   bool temp1Active;
   bool temp2Active;
+  bool alarmTriggered;
 
 public:
   TempMonitorTask(TempSensor *t, SmartHangarTask *mt) {
@@ -25,6 +26,7 @@ public:
     this->mainTask = mt;
     temp1Active = false;
     temp2Active = false;
+    alarmTriggered = false;
   }
 
   void init(int period) { Task::init(period); }
@@ -32,6 +34,8 @@ public:
   void tick() {
     float currentTemp = temp->getTemperature();
 
+    Serial.print("TEMP:");
+    Serial.println(currentTemp);
     // Check Temp1
     if (currentTemp >= Temp1) {
       if (!temp1Active) {
@@ -54,11 +58,15 @@ public:
         temp2Active = true;
       } else {
         if (millis() - temp2StartTime > T4) {
-          mainTask->setAlarm();
+          if (!alarmTriggered) {
+            mainTask->setAlarm();
+            alarmTriggered = true;
+          }
         }
       }
     } else {
       temp2Active = false;
+      alarmTriggered = false;
     }
   }
 };

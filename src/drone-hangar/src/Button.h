@@ -11,7 +11,8 @@ public:
     this->pin = pin;
     pinMode(pin, INPUT);
   }
-  bool isPressed() { return digitalRead(pin) == HIGH; }
+  bool isPressed() { return digitalRead(pin) == 1; }
+  int getPin() { return pin; }
 };
 
 #endif
