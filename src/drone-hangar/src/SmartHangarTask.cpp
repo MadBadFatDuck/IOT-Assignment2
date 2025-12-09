@@ -22,7 +22,8 @@ void SmartHangarTask::init(int period) {
   l1->switchOn();
   l2->switchOff();
   l3->switchOff();
-  servo->off(); // Closed
+  servo->on(); // Closed
+  servo->setPosition(0);
   lcd->print("DRONE INSIDE");
   Serial.println("DRONE INSIDE");
 }
@@ -33,7 +34,7 @@ void SmartHangarTask::setAlarm() {
     l1->switchOff();
     l2->switchOff();
     l3->switchOn();
-    servo->off(); // Close door
+    servo->setPosition(0); // Close door
     lcd->print("ALARM");
     Serial.println("ALARM");
   }
