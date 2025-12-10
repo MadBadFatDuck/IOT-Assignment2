@@ -105,3 +105,10 @@ void SmartHangarTask::tick() {
     }
   }
 }
+
+void SmartHangarTask::setPreAlarm(bool active) {
+  if (active && !preAlarm) {
+    Serial.println("PRE-ALARM");
+  }
+  preAlarm = active;
+}

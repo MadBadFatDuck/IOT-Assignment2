@@ -9,8 +9,8 @@ class TempMonitorTask : public Task {
   TempSensor *temp;
   SmartHangarTask *mainTask;
 
-  float Temp1 = 27.0;      // Celsius
-  float Temp2 = 30.0;      // Celsius
+  float Temp1 = 29.0;      // Celsius
+  float Temp2 = 31.0;      // Celsius
   unsigned long T3 = 3000; // ms
   unsigned long T4 = 3000; // ms
 

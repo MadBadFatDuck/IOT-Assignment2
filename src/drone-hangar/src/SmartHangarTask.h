@@ -41,7 +41,7 @@ public:
   void setAlarm();
   bool isAlarm();
   bool isBlinkingPhase() { return state == TAKE_OFF || state == LANDING; }
-  void setPreAlarm(bool active) { preAlarm = active; }
+  void setPreAlarm(bool active);
 };
 
 #endif
