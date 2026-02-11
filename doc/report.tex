@@ -1,0 +1,203 @@
+\documentclass[a4paper,12pt]{article}
+
+% Pacchetti per la lingua e la codifica
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+
+% Pacchetti per la grafica e le immagini
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% Pacchetti per la formattazione del codice
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Pacchetti per tabelle e layout
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+% Configurazione margini
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+% Configurazione colori per il codice
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+% Intestazione documento
+\title{\textbf{Relazione di Progetto: Smart Drone Hangar}\\
+\large Assignment 2 - IoT Systems}
+\author{Karim El Berni \and Luca Fabbri \and Luca Dellasantina}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduzione}
+Il progetto \textbf{Smart Drone Hangar} consiste nella realizzazione di un sistema IoT per la gestione automatizzata di un hangar per droni. Il sistema è composto da due sottosistemi principali che comunicano tramite protocollo seriale:
+\begin{itemize}
+    \item \textbf{Drone Hangar (Arduino):} L'unità fisica che gestisce sensori (temperatura, distanza, presenza) e attuatori (motori, LED, display LCD) per controllare l'accesso e lo stato dell'hangar.
+    \item \textbf{Drone Remote Unit (Java/PC):} Un'interfaccia grafica (GUI) che funge da dashboard di controllo remoto, permettendo all'operatore di inviare comandi e monitorare la telemetria in tempo reale.
+\end{itemize}
+
+\section{Architettura del Sistema}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Drone_hangar.png}
+    \caption{Schema del circuito su Breadboard}
+    \label{fig:circuit}
+\end{figure}
+
+\subsection{Hardware - Lato Arduino}
+Il sottosistema embedded è basato su Arduino Uno e utilizza i seguenti componenti collegati ai pin specificati:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Componente} & \textbf{Pin Arduino} & \textbf{Funzione} \\
+\hline
+Led L1 (Verde) & D2 & Stato "Power On" / "Rest" \\
+Led L2 (Verde) & D3 & Indicatore di movimento (Blinking) \\
+Led L3 (Rosso) & D4 & Indicatore di Allarme \\
+Servo Motore & D5 & Apertura/Chiusura portellone \\
+Sonar (HC-SR04) & D9 (Trig), D10 (Echo) & Misurazione distanza drone \\
+Sensore PIR & D11 & Rilevamento presenza drone esterno \\
+Pulsante & D12 & Reset manuale allarme \\
+Sensore Temp (TMP36) & A0 & Monitoraggio surriscaldamento \\
+Display LCD (I2C) & SDA/SCL & Feedback visuale all'utente \\
+\hline
+\end{tabular}
+\caption{Mappa dei collegamenti hardware}
+\end{table}
+
+\subsection{Software - Lato PC}
+Il lato PC è un'applicazione Java basata su \textbf{Swing} per l'interfaccia grafica. La comunicazione seriale è gestita tramite la libreria \texttt{jSerialComm}, che permette l'invio asincrono di comandi e la ricezione di eventi.
+
+\section{Implementazione Firmware (Arduino)}
+
+\subsection{Architettura a Task}
+Il firmware è stato progettato seguendo un pattern basato su uno \textbf{Scheduler Cooperativo}. Invece di utilizzare un unico ciclo \texttt{loop()} bloccante o complesso, il sistema è diviso in task indipendenti:
+\begin{itemize}
+    \item \textbf{Scheduler:} Gestisce l'esecuzione periodica dei task.
+    \item \textbf{SmartHangarTask:} Implementa la logica principale e la macchina a stati finiti (FSM).
+    \item \textbf{BlinkTask:} Gestisce il lampeggio dei LED in modo non bloccante.
+    \item \textbf{TempMonitorTask:} Monitora la temperatura e innesca gli allarmi.
+\end{itemize}
+
+\subsection{Macchina a Stati Finiti (FSM)}
+Il cuore del sistema è la classe \texttt{SmartHangarTask}, che evolve attraverso i seguenti stati:
+
+\begin{enumerate}
+    \item \textbf{REST:} Il sistema è a riposo, il drone è dentro. Il servo è chiuso (0°). Attende il comando seriale "TO".
+    \item \textbf{TAKE\_OFF:} Il servo si apre (90°). Il sistema attende che il Sonar rilevi che il drone è uscito ($distanza > D1$).
+    \item \textbf{TO\_OUT:} Il drone è fuori e il servo si richiude. Attende il comando "LD" E il rilevamento del PIR.
+    \item \textbf{LANDING:} Il servo si riapre. Attende che il Sonar rilevi il rientro del drone ($distanza < D2$).
+    \item \textbf{ALARM:} Stato di emergenza attivato da temperatura elevata. Blocca le operazioni finché non viene premuto il pulsante di Reset.
+\end{enumerate}
+
+Di seguito un esempio del codice della FSM nel metodo \texttt{tick()}:
+
+\begin{lstlisting}[language=C++]
+void SmartHangarTask::tick() {
+  if (state == REST) {
+    if (Serial.available() > 0) {
+      String cmd = Serial.readStringUntil('\n');
+      if (cmd == "TO" && !preAlarm) {
+        state = TAKE_OFF;
+        servo->setPosition(90);
+        // ...
+      }
+    }
+  } else if (state == TAKE_OFF) {
+    if (sonar->getDistance() > D1) {
+        // Logica transizione a TO_OUT
+    }
+  }
+  // Altri stati...
+}
+\end{lstlisting}
+
+\subsection{Monitoraggio Temperatura}
+Il task \texttt{TempMonitorTask} legge periodicamente il sensore TMP36. Gestisce due soglie:
+\begin{itemize}
+    \item \textbf{Temp1:} Attiva un flag di pre-allarme.
+    \item \textbf{Temp2:} Se superata per un tempo $T4$, porta il sistema nello stato globale di \textbf{ALARM}, accendendo il Led L3 e bloccando le operazioni.
+\end{itemize}
+
+\section{Implementazione Software (Java)}
+
+La \textbf{Drone Remote Unit} fornisce una GUI semplice con:
+\begin{itemize}
+    \item Due pulsanti per i comandi: \textit{Take Off} e \textit{Land}.
+    \item Label per visualizzare lo stato corrente, la distanza rilevata e la temperatura.
+\end{itemize}
+
+La classe \texttt{SerialComm} gestisce la comunicazione su un thread separato per non bloccare l'interfaccia utente (EDT).
+
+\begin{lstlisting}[language=Java]
+// Esempio di gestione eventi seriali in Java
+serialPort.addDataListener(new SerialPortDataListener() {
+   @Override
+   public void serialEvent(SerialPortEvent event) {
+       // Lettura dati e aggiornamento GUI tramite SwingUtilities.invokeLater
+   }
+});
+\end{lstlisting}
+
+\section{Protocollo di Comunicazione}
+Arduino e PC comunicano tramite messaggi ASCII terminati da \texttt{\textbackslash n} a 9600 baud.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Direzione} & \textbf{Messaggio} & \textbf{Significato} \\
+\hline
+PC $\rightarrow$ Arduino & \texttt{TO} & Richiesta di decollo (Take Off) \\
+PC $\rightarrow$ Arduino & \texttt{LD} & Richiesta di atterraggio (Land) \\
+\hline
+Arduino $\rightarrow$ PC & \texttt{TAKE OFF} & Conferma inizio decollo \\
+Arduino $\rightarrow$ PC & \texttt{DRONE OUT} & Drone uscito dall'hangar \\
+Arduino $\rightarrow$ PC & \texttt{LANDING} & Inizio procedura atterraggio \\
+Arduino $\rightarrow$ PC & \texttt{DRONE INSIDE} & Drone rientrato (Stato REST) \\
+Arduino $\rightarrow$ PC & \texttt{ALARM} & Allarme temperatura critica \\
+Arduino $\rightarrow$ PC & \texttt{TEMP:xx.x} & Telemetria Temperatura \\
+\hline
+\end{tabular}
+\caption{Protocollo Seriale}
+\end{table}
+
+\section{Conclusioni}
+Il progetto dimostra l'integrazione efficace tra un sistema embedded real-time (Arduino con scheduler cooperativo) e un sistema di controllo desktop (Java). L'uso di una macchina a stati finiti garantisce robustezza nella gestione logica dell'hangar, prevenendo stati inconsistenti, mentre il monitoraggio della temperatura aggiunge un livello di sicurezza fondamentale per un sistema IoT.
+
+\end{document}
